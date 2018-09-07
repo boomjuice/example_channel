@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block styles %}
+    <style>
+        #channel_message {
+            height: 500px;
+            width: 1000px;
+            border: 1px solid #e1e1e1;
+            margin-left: 80px;
+            margin-bottom: 10px;
+            overflow: auto;
+            padding: 10px;
+        }
+    </style>
+{% endblock %}
+{% block content %}
+
+    <div class="row" id="channel_message"></div>
+    <div class="row">
+        <div class="col-lg-8" style="margin-left: 210px ">
+            <span style="display: none;" id="uname">{{ request.user }}</span>
+            <textarea class="form-control " id="msg" cols="10" rows="5" placeholder="请输入发送内容">
+            </textarea>
+            <button class="btn btn-primary " style="float: right" onclick="SendMsg()"> 发送</button>
+        </div>
+
+    </div>
+{% endblock %}
+{% block script %}
+    <script>
+        var current_user = $('#uname').text();
+        var socket = new WebSocket("ws://" + window.location.host + '/user/');
+        socket.onopen = function open() {
+            console.log("WebSocket connected");
+        };
+        socket.onmessage = function (message) {
+            var data = JSON.parse(message.data);
+            var myDate = new Date();
+            var time = myDate.toLocaleTimeString();
+            var msg_div = document.createElement('div');
+            msg_div.innerHTML = (time + '     ' + data['user'] + ' : ' + data['text']);
+            var button = document.createElement("button");
+            button.setAttribute('class', 'close');
+            button.setAttribute('type', 'button');
+            button.setAttribute('data-dismiss', 'alert');
+            button.innerHTML = '&times;';
+            if (data['message']) {
+                if (data['user'] == current_user) {
+                    msg_div.append(button);
+                    msg_div.setAttribute('class', 'alert alert-warning');
+                    $('#channel_message').append(msg_div);
+                }
+                else {
+                    msg_div.append(button);
+                    msg_div.setAttribute('class', 'alert alert-success');
+                    $('#channel_message').append(msg_div);
+                }
+                var before_height = $("#channel_message").scrollTop();
+                $("#channel_message").scrollTop(before_height+100);
+            }
+        };
+        if (socket.readyState == WebSocket.OPEN) {
+            socket.onopen();
+        }
+
+        function SendMsg() {
+            var msg = $('#msg').val();
+            socket.send(msg);
+            $('#msg').val('');
+
+        }
+    </script>
+{% endblock %}
